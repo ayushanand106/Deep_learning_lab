@@ -5,21 +5,18 @@ activations=("relu" "tanh" "leaky_relu")
 initializations=("xavier" "kaiming" "random")
 optimizers=("sgd" "adam" "rmsprop")
 
-# Iterate over all combinations of activation, initialization, and optimizer
+# Generate all combinations
+combinations=()
 for activation in "${activations[@]}"; do
     for init in "${initializations[@]}"; do
         for optimizer in "${optimizers[@]}"; do
-            echo "Running combination: Activation=$activation, Init=$init, Optimizer=$optimizer"
-            
-            # Construct and run the command
-            python main.py --activation "$activation" --init "$init" --optimizer "$optimizer"
-            
-            # Check if the command succeeded
-            if [ $? -ne 0 ]; then
-                echo "Error occurred while running Activation=$activation, Init=$init, Optimizer=$optimizer"
-            fi
-            
-            echo "----------------------------------------"
+            combinations+=("$activation $init $optimizer")
         done
     done
 done
+
+# Run combinations in parallel using GNU Parallel, alternating CUDA_VISIBLE_DEVICES between 0 and 1
+printf "%s\n" "${combinations[@]}" | parallel -j 4 --colsep ' ' \
+    'CUDA_VISIBLE_DEVICES=$(({%} % 2)); python main.py --activation {1} --init {2} --optimizer {3}'
+
+echo "All combinations have been processed."
