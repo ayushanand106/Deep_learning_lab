@@ -7,6 +7,7 @@ import torchvision.transforms as transforms
 from tqdm import tqdm
 import os
 from datetime import datetime
+import pdb
 
 torch.manual_seed(42)
 
@@ -16,6 +17,7 @@ class CNN(nn.Module):
         super(CNN, self).__init__()
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
+        self.conv3=nn.Conv2d(64,64,kernel_size=1,stride=1,padding=0)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.fc1 = nn.Linear(64 * 8 * 8, 128)
         self.fc2 = nn.Linear(128, 10)
@@ -24,6 +26,9 @@ class CNN(nn.Module):
     def forward(self, x):
         x = self.pool(self.activation(self.conv1(x)))
         x = self.pool(self.activation(self.conv2(x)))
+        y = self.activation(self.conv3(x))
+        x=self.activation((x+y)/2)
+        # pdb.set_trace()
         x = x.view(-1, 64 * 8 * 8)
         x = self.activation(self.fc1(x))
         x = self.fc2(x)
@@ -84,10 +89,10 @@ def main():
     ])
 
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, shuffle=True)
 
     testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=False)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=256, shuffle=False)
 
     # Initialize model with the selected activation function
     model = CNN(activation_map[args.activation])
@@ -131,7 +136,7 @@ def main():
     write_log("Training started")
 
     # Training loop
-    for epoch in tqdm(range(10)):  # Training for 10 epochs as an example
+    for epoch in tqdm(range(150)):  # Training for 10 epochs as an example
         model.train()  # Set model to training mode
         running_loss = 0.0
 
