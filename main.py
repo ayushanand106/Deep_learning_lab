@@ -124,7 +124,7 @@ def main():
         filename=log_file_path,
         filemode='a',
         format='%(asctime)s - %(levelname)s - %(message)s',
-        level=logging.INFO
+        level=logging.DEBUG
     )
     
     logging.info("Training started")
