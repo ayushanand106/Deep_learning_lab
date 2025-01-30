@@ -5,18 +5,32 @@ activations=("relu" "tanh" "leaky_relu")
 initializations=("xavier" "kaiming" "random")
 optimizers=("sgd" "adam" "rmsprop")
 
-# Generate all combinations
-combinations=()
+# Initialize a variable to track GPU alternation
+gpu=0
+
+# Iterate over all combinations of activation, initialization, and optimizer
 for activation in "${activations[@]}"; do
     for init in "${initializations[@]}"; do
         for optimizer in "${optimizers[@]}"; do
-            combinations+=("$activation $init $optimizer")
+            echo "Running combination: Activation=$activation, Init=$init, Optimizer=$optimizer on GPU=$gpu"
+            
+            # Set CUDA_VISIBLE_DEVICES to alternate between 0 and 1
+            export CUDA_VISIBLE_DEVICES=$gpu
+            
+            # Run the command in the background
+            python main.py --activation "$activation" --init "$init" --optimizer "$optimizer" &
+            
+            # Toggle GPU between 0 and 1
+            if [ $gpu -eq 0 ]; then
+                gpu=1
+            else
+                gpu=0
+            fi
         done
     done
 done
 
-# Run combinations in parallel using GNU Parallel, alternating CUDA_VISIBLE_DEVICES between 0 and 1
-printf "%s\n" "${combinations[@]}" | parallel -j 4 --colsep ' ' \
-    'CUDA_VISIBLE_DEVICES=$(({%} % 2)); python main.py --activation {1} --init {2} --optimizer {3}'
+# Wait for all background processes to finish
+wait
 
 echo "All combinations have been processed."
