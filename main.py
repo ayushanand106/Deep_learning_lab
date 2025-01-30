@@ -6,7 +6,6 @@ import torchvision
 import torchvision.transforms as transforms
 from tqdm import tqdm
 import os
-import logging
 from datetime import datetime
 
 torch.manual_seed(42)
@@ -53,7 +52,7 @@ def initialize_weights(model, init_type):
                 nn.init.uniform_(m.weight, -0.1, 0.1)
 
 # Evaluate the model on the test dataset
-def evaluate_model(model, testloader,device='cuda'):
+def evaluate_model(model, testloader, device='cuda'):
     model.eval()  # Set model to evaluation mode
     correct = 0
     total = 0
@@ -97,10 +96,10 @@ def main():
     # Map optimizers
     optimizer_map = {
         'sgd': optim.SGD(model.parameters(), lr=1e-3),
-        'adam': optim.Adam(model.parameters(), lr=1e-3,weight_decay=0.01),
-        'rmsprop': optim.RMSprop(model.parameters(), lr=1e-3,weight_decay=0.01)
+        'adam': optim.Adam(model.parameters(), lr=1e-3, weight_decay=0.01),
+        'rmsprop': optim.RMSprop(model.parameters(), lr=1e-3, weight_decay=0.01)
     }
-    
+
     optimizer = optimizer_map[args.optimizer]
 
     # Loss function
@@ -108,33 +107,34 @@ def main():
 
     # Variables to track the best model
     best_accuracy = 0.0
-    device='cuda' 
+    device = 'cuda'
     model.to(device)
-    model_log="model_log"
+    
+    # Create directory for logs and models
+    model_log = "model_log"
     os.makedirs(model_log, exist_ok=True)
 
-    # Create model path and set up logging
+    # Create model path and set up file-based logging
     model_path = f'models_{args.optimizer}_{args.init}_{args.activation}'
-    os.makedirs(os.path.join(model_log,model_path), exist_ok=True)
-    model_path = os.path.join(model_log,model_path)
+    os.makedirs(os.path.join(model_log, model_path), exist_ok=True)
+    model_path = os.path.join(model_log, model_path)
 
-    log_file_path = os.path.join(model_path, f'training_log_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
-    
-    logging.basicConfig(
-        filename=log_file_path,
-        filemode='a',
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        level=logging.DEBUG
-    )
-    
-    logging.info("Training started")
-    
-    
+    # Define the log file path with .txt extension
+    log_file_path = os.path.join(model_path, f'training_log_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt')
+
+    # Function to write logs to the text file
+    def write_log(message):
+        with open(log_file_path, 'a') as log_file:
+            log_file.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} - {message}\n')
+
+    # Start training and logging
+    write_log("Training started")
+
     # Training loop
-    for epoch in tqdm(range(1)):  # Training for 10 epochs as an example
+    for epoch in tqdm(range(10)):  # Training for 10 epochs as an example
         model.train()  # Set model to training mode
         running_loss = 0.0
-        
+
         for i, (inputs, labels) in tqdm(enumerate(trainloader), total=len(trainloader)):
             optimizer.zero_grad()
             inputs, labels = inputs.to(device), labels.to(device)
@@ -144,19 +144,21 @@ def main():
             optimizer.step()
             running_loss += loss.item()
 
-            if i % 100 ==0:  # Print every 100 mini-batches
-                logging.info(f'[Epoch {epoch+1}, Batch {i+1}] Loss: {running_loss / 100:.3f}')
-            running_loss = 0.0
+            if i % 100 == 0:  # Log every 100 mini-batches
+                write_log(f'[Epoch {epoch+1}, Batch {i+1}] Loss: {running_loss / 100:.3f}')
+                running_loss = 0.0
 
         # Evaluate on test data after each epoch
         test_accuracy = evaluate_model(model, testloader)
-        logging.info(f'After Epoch {epoch+1}: Test Accuracy: {test_accuracy:.2f}%')
+        write_log(f'After Epoch {epoch+1}: Test Accuracy: {test_accuracy:.2f}%')
 
         # Save the best model based on test accuracy
         if test_accuracy > best_accuracy:
             best_accuracy = test_accuracy
-            logging.info(f"Saving new best model with accuracy: {best_accuracy:.2f}%")
+            write_log(f"Saving new best model with accuracy: {best_accuracy:.2f}%")
             torch.save(model.state_dict(), os.path.join(model_path,'best_model.pth'))
-    logging.info("Best accuracy: {:.2f}".format(best_accuracy))
+
+    write_log(f"Best accuracy: {best_accuracy:.2f}")
+
 if __name__ == '__main__':
     main()
