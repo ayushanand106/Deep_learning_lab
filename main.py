@@ -62,7 +62,7 @@ def evaluate_model(model, testloader, device='cuda'):
     correct = 0
     total = 0
     with torch.no_grad():
-        for inputs, labels in tqdm(testloader, total=len(testloader)):
+        for inputs, labels in testloader:
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
             _, predicted = torch.max(outputs.data, 1)
@@ -136,11 +136,11 @@ def main():
     write_log("Training started")
 
     # Training loop
-    for epoch in tqdm(range(150)):  # Training for 10 epochs as an example
+    for epoch in range(150):  # Training for 10 epochs as an example
         model.train()  # Set model to training mode
         running_loss = 0.0
 
-        for i, (inputs, labels) in tqdm(enumerate(trainloader), total=len(trainloader)):
+        for i, (inputs, labels) in enumerate(trainloader):
             optimizer.zero_grad()
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
